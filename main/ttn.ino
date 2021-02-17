@@ -390,7 +390,7 @@ static void ttn_set_cnt() {
     // of one write every 5 minutes.  Which should let the FLASH last for 300 years (given the ESP32 NVS algoritm)
     static uint32_t lastWriteMsec = UINT32_MAX; // Ensure we write at least once
     uint32_t now = millis();
-    if(now < lastWriteMsec || (now - lastWriteMsec) > 5 * 60 * 1000L) { // write if we roll over (50 days) or 5 mins
+    if(now < lastWriteMsec || (now - lastWriteMsec) > 1 * 60 * 1000L) { // write if we roll over (50 days) or 5 mins
         lastWriteMsec = now;
 
         Preferences p;

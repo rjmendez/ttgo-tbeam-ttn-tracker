@@ -25,6 +25,13 @@
 #include "rom/rtc.h"
 #include <TinyGPS++.h>
 #include <Wire.h>
+#include <Adafruit_MPU6050.h>
+#include <Adafruit_Sensor.h>
+
+Adafruit_MPU6050 mpu;
+
+/* Create new sensor events */
+sensors_event_t a, g, temp;
 
 #include "axp20x.h"
 AXP20X_Class axp;
@@ -33,8 +40,18 @@ String baChStatus = "No charging";
 
 bool ssd1306_found = false;
 bool axp192_found = false;
+bool mpu6050_found = false;
 
 bool packetSent, packetQueued;
+
+// Accelerometer defaults
+float old_accel_val_x = 0.0;
+float old_accel_val_y = 0.0;
+float old_accel_val_z = 0.0;
+// Gyro defaults
+float old_gyro_val_x = 0.0;
+float old_gyro_val_y = 0.0;
+float old_gyro_val_z = 0.0;
 
 #if defined(PAYLOAD_USE_FULL)
   // includes number of satellites and accuracy
@@ -159,9 +176,9 @@ void callback(uint8_t message) {
   }
   if (EV_JOINING == message) {
     if (ttn_joined) {
-      screen_print("TTN joining...\n");
+      screen_print("Helium joining...\n");
     } else {
-      screen_print("Joined TTN!\n");
+      screen_print("Joined Helium!\n");
     }
   }
   if (EV_JOIN_FAILED == message) screen_print("TTN join failed\n");
@@ -181,7 +198,7 @@ void callback(uint8_t message) {
 
   if (EV_RESPONSE == message) {
 
-    screen_print("[TTN] Response: ");
+    screen_print("[Helium] Response: ");
 
     size_t len = ttn_response_len();
     uint8_t data[len];
@@ -226,6 +243,10 @@ void scanI2Cdevice(void)
                 Serial.print("0");
             Serial.println(addr, HEX);
         }
+    }
+    if (mpu.begin()) {
+      mpu6050_found = true;
+      Serial.println("MPU6050 chip found");
     }
     if (nDevices == 0)
         Serial.println("No I2C devices found\n");
@@ -292,6 +313,82 @@ void axp192Init() {
     }
 }
 
+void accel_setup() {
+  #ifdef USE_MPU6050
+    mpu.setCycleRate(MPU6050_CYCLE_5_HZ);
+    mpu.enableSleep(false);
+    mpu.enableCycle(true);  
+  #endif
+}
+
+bool accel() {
+#ifdef USE_MPU6050
+  // Start reading for new values  
+  mpu.getEvent(&a, &g, &temp);
+  
+  // Check for empty old_ values
+  if (
+      old_accel_val_x == 0.0 &&
+      old_accel_val_y == 0.0 &&
+      old_accel_val_z == 0.0 &&
+      old_gyro_val_x == 0.0 &&
+      old_gyro_val_y == 0.0 &&
+      old_gyro_val_z == 0.0
+    ) {
+    // Set old Accelerometer values
+    old_accel_val_x = a.acceleration.x;
+    old_accel_val_y = a.acceleration.y;
+    old_accel_val_z = a.acceleration.z;
+    // Set old Gyro values
+    old_gyro_val_x = g.gyro.x;
+    old_gyro_val_y = g.gyro.y;
+    old_gyro_val_z = g.gyro.z;
+
+    return true;
+    }
+  // Check if the values have not changed significantly
+  if (
+      // Accelerometer has not changed
+      (a.acceleration.x >= (old_accel_val_x - ACCEL_CHANGE)) &&
+      (a.acceleration.x <= (old_accel_val_x + ACCEL_CHANGE)) &&
+      (a.acceleration.y >= (old_accel_val_y - ACCEL_CHANGE)) &&
+      (a.acceleration.y <= (old_accel_val_y + ACCEL_CHANGE)) &&
+      (a.acceleration.z >= (old_accel_val_z - ACCEL_CHANGE)) &&
+      (a.acceleration.z <= (old_accel_val_z + ACCEL_CHANGE)) &&
+      // Gyro has not changed
+      (g.gyro.x >= (old_gyro_val_x - GYRO_CHANGE)) &&
+      (g.gyro.x <= (old_gyro_val_x + GYRO_CHANGE)) &&
+      (g.gyro.y >= (old_gyro_val_y - GYRO_CHANGE)) &&
+      (g.gyro.y <= (old_gyro_val_y + GYRO_CHANGE)) &&
+      (g.gyro.z >= (old_gyro_val_z - GYRO_CHANGE)) &&
+      (g.gyro.z <= (old_gyro_val_z + GYRO_CHANGE))
+    ) {
+    // Set old Accelerometer values
+    old_accel_val_x = a.acceleration.x;
+    old_accel_val_y = a.acceleration.y;
+    old_accel_val_z = a.acceleration.z;
+    // Set old Gyro values
+    old_gyro_val_x = g.gyro.x;
+    old_gyro_val_y = g.gyro.y;
+    old_gyro_val_z = g.gyro.z;
+
+    return false;
+    }
+  // Value has changed
+  else {
+    // Set old Accelerometer values
+    old_accel_val_x = a.acceleration.x;
+    old_accel_val_y = a.acceleration.y;
+    old_accel_val_z = a.acceleration.z;
+    // Set old Gyro values
+    old_gyro_val_x = g.gyro.x;
+    old_gyro_val_y = g.gyro.y;
+    old_gyro_val_z = g.gyro.z;
+    return true;
+  }
+#endif
+return true;
+}
 
 // Perform power on init that we do on each wake from deep sleep
 void initDeepSleep() {
@@ -337,6 +434,8 @@ void setup() {
     ssd1306_found = false; // forget we even have the hardware
 
   if (ssd1306_found) screen_setup();
+
+  if (mpu6050_found) accel_setup();
 
   // Init GPS
   gps_setup();
@@ -411,25 +510,26 @@ void loop() {
   static uint32_t last = 0;
   static bool first = true;
   if (0 == last || millis() - last > SEND_INTERVAL) {
-    if (trySend()) {
-      last = millis();
-      first = false;
-      Serial.println("TRANSMITTED");
-    } else {
-      if (first) {
-        screen_print("Waiting GPS lock\n");
+    if (accel()) {
+      if (trySend()) {
+        last = millis();
         first = false;
-      }
+        Serial.println("TRANSMITTED");
+      } else {
+        if (first) {
+          screen_print("Waiting GPS lock\n");
+          first = false;
+        }
+        #ifdef GPS_WAIT_FOR_LOCK
+        if (millis() > GPS_WAIT_FOR_LOCK) {
+          sleep();
+        }
+        #endif
 
-#ifdef GPS_WAIT_FOR_LOCK
-      if (millis() > GPS_WAIT_FOR_LOCK) {
-        sleep();
-      }
-#endif
-
-      // No GPS lock yet, let the OS put the main CPU in low power mode for 100ms (or until another interrupt comes in)
-      // i.e. don't just keep spinning in loop as fast as we can.
-      delay(100);
+        // No GPS lock yet, let the OS put the main CPU in low power mode for 100ms (or until another interrupt comes in)
+        // i.e. don't just keep spinning in loop as fast as we can.
+        delay(100);
+        }
     }
   }
 }

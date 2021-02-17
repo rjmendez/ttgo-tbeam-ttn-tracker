@@ -61,9 +61,9 @@ void _screen_header() {
 void screen_show_logo() {
     if(!display) return;
 
-    uint8_t x = (display->getWidth() - TTN_IMAGE_WIDTH) / 2;
-    uint8_t y = SCREEN_HEADER_HEIGHT + (display->getHeight() - SCREEN_HEADER_HEIGHT - TTN_IMAGE_HEIGHT) / 2 + 1;
-    display->drawXbm(x, y, TTN_IMAGE_WIDTH, TTN_IMAGE_HEIGHT, TTN_IMAGE);
+    uint8_t x = (display->getWidth() - HELIUM_IMAGE_WIDTH) / 2;
+    uint8_t y = SCREEN_HEADER_HEIGHT + (display->getHeight() - SCREEN_HEADER_HEIGHT - HELIUM_IMAGE_HEIGHT) / 2 + 1;
+    display->drawXbm(x, y, HELIUM_IMAGE_WIDTH, HELIUM_IMAGE_HEIGHT, HELIUM_IMAGE);
 }
 
 void screen_off() {

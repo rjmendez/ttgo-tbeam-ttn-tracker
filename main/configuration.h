@@ -32,7 +32,7 @@ void ttn_register(void (*callback)(uint8_t message));
 // Version
 // -----------------------------------------------------------------------------
 
-#define APP_NAME                "TTN MAP-TRACK"
+#define APP_NAME                "HELIUM MAP-TRACK"
 #define APP_VERSION             "1.2.1"
 
 // -----------------------------------------------------------------------------
@@ -40,8 +40,8 @@ void ttn_register(void (*callback)(uint8_t message));
 // -----------------------------------------------------------------------------
 
 // Select which T-Beam board is being used. Only uncomment one.
-#define T_BEAM_V07  // AKA Rev0 (first board released)
-// #define T_BEAM_V10  // AKA Rev1 (second board released)
+// #define T_BEAM_V07  // AKA Rev0 (first board released)
+#define T_BEAM_V10  // AKA Rev1 (second board released)
 
 // Select the payload format. Change on TTN as well. Only uncomment one.
 #define PAYLOAD_USE_FULL
@@ -63,12 +63,12 @@ void ttn_register(void (*callback)(uint8_t message));
 #define DEBUG_PORT              Serial          // Serial debug port
 #define SERIAL_BAUD             115200          // Serial debug baud rate
 #define SLEEP_BETWEEN_MESSAGES  false           // Do sleep between messages
-#define SEND_INTERVAL           (20 * 1000)     // Sleep for these many millis
+#define SEND_INTERVAL           (5 * 1000)     // Sleep for these many millis
 #define MESSAGE_TO_SLEEP_DELAY  5000            // Time after message before going to sleep
 #define LOGO_DELAY              5000            // Time to show logo on first boot
 #define LORAWAN_PORT            10              // Port the messages will be sent to
 #define LORAWAN_CONFIRMED_EVERY 0               // Send confirmed message every these many messages (0 means never)
-#define LORAWAN_SF              DR_SF10         // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
+#define LORAWAN_SF              DR_SF7         // Spreading factor (recommended DR_SF7 for ttn network map purposes, DR_SF10 works for slow moving trackers)
 #define LORAWAN_ADR             0               // Enable ADR
 #define REQUIRE_RADIO           true            // If true, we will fail to start if the radio is not found
 
@@ -155,3 +155,11 @@ void ttn_register(void (*callback)(uint8_t message));
 #define GPS_POWER_CTRL_CH     3
 #define LORA_POWER_CTRL_CH    2
 #define PMU_IRQ               35
+
+// -----------------------------------------------------------------------------
+// MPU-6050 Accelerometer + Gyro
+// -----------------------------------------------------------------------------
+
+#define USE_MPU6050   true
+#define ACCEL_CHANGE  1 // Measured in meters per second per second. eg: ~10 for 1G
+#define GYRO_CHANGE   0.2 // Measured in radians per second
