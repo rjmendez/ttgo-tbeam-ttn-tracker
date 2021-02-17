@@ -21,6 +21,7 @@ NOTE: There are now 2 versions of the TTGO T-BEAM, the first version (Rev0) and 
    * [mikalhart/TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) (for Rev0 and Rev1)
    * [ThingPulse/esp8266-oled-ssd1306](https://github.com/ThingPulse/esp8266-oled-ssd1306) (for Rev0 and Rev1)
    * [lewisxhe/AXP202X_Library](https://github.com/lewisxhe/AXP202X_Library) (for Rev1 only)
+   * [adafruit/Adafruit_MPU6050](https://github.com/adafruit/Adafruit_MPU6050) (Optional Accelerometer)
 
 3. Edit ```arduino-lmic/project_config/lmic_project_config.h``` and uncomment the proper frequency for your region.
 
